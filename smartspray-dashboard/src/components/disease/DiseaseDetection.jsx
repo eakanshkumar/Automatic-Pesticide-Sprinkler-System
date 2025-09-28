@@ -83,6 +83,7 @@ const DiseaseDetection = () => {
             // Trigger actions based on disease type and severity
             handleDiseaseActions(result);
         } catch (error) {
+            console.log("LLLLLLLLSDHjf,wyusM,HVCJSVJS");
             setMessage({
                 text:
                     error.response?.data?.message ||
