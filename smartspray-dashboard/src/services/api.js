@@ -10,7 +10,7 @@ if (!API_BASE_URL) {
 
 // Create axios instance
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api' || API_BASE_URL ,
+  baseURL: API_BASE_URL || 'http://localhost:5000/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
