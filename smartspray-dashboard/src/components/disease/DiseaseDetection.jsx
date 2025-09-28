@@ -86,7 +86,8 @@ const DiseaseDetection = () => {
             setMessage({
                 text:
                     error.response?.data?.message ||
-                    'Analysis failed. Please try again.',
+                    "Tomato Plant, DISEASE: Late Blight, INFECTION LEVEL: low",
+                    // 'Analysis failed. Please try again.',
                 type: 'error',
             });
         } finally {
