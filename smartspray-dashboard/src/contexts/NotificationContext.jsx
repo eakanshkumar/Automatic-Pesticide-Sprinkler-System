@@ -4,7 +4,7 @@ import { notificationsService } from '../services/notifications';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { toast } from 'react-hot-toast';
 
- export const NotificationContext = createContext();
+export const NotificationContext = createContext();
 
 export const useNotification = () => {
   const context = useContext(NotificationContext);
@@ -19,59 +19,77 @@ export const NotificationProvider = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const queryClient = useQueryClient();
 
-  // Fetch notifications
+  /* =========================
+     ✅ FIXED useQuery (v5)
+  ========================= */
   const {
     data: notificationsData,
     isLoading,
     refetch,
-  } = useQuery(['notifications'], notificationsService.getNotifications, {
+  } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: notificationsService.getNotifications,
     refetchOnWindowFocus: false,
-    retry: 1, // don’t infinitely retry
+    retry: 1,
   });
 
-  // Mark as read mutation
-  const markAsReadMutation = useMutation(notificationsService.markAsRead, {
+  /* =========================
+     MUTATIONS
+  ========================= */
+  const markAsReadMutation = useMutation({
+    mutationFn: notificationsService.markAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries('notifications');
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 
-  // Mark all as read mutation
-  const markAllAsReadMutation = useMutation(notificationsService.markAllAsRead, {
+  const markAllAsReadMutation = useMutation({
+    mutationFn: notificationsService.markAllAsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries('notifications');
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 
-  // Delete notification mutation
-  const deleteNotificationMutation = useMutation(notificationsService.deleteNotification, {
+  const deleteNotificationMutation = useMutation({
+    mutationFn: notificationsService.deleteNotification,
     onSuccess: () => {
-      queryClient.invalidateQueries('notifications');
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 
-  // WebSocket for real-time notifications
-  useWebSocket(`${import.meta.env.VITE_WS_URL || 'ws://localhost:5000'}`, (data) => {
-    if (data.type === 'NEW_NOTIFICATION') {
-      setNotifications(prev => [data.notification, ...prev]);
-      setUnreadCount(prev => prev + 1);
-      
-      // Show toast notification
-      toast(data.notification.message, {
-        icon: '🔔',
-        duration: 5000,
-      });
+  /* =========================
+     WEBSOCKET HANDLER
+  ========================= */
+  useWebSocket(
+    import.meta.env.VITE_WS_URL || 'ws://localhost:5000/notifications',
+    (data) => {
+      if (data.type === 'NEW_NOTIFICATION') {
+        setNotifications((prev) => [data.notification, ...prev]);
+        setUnreadCount((prev) => prev + 1);
+
+        toast(data.notification.message, {
+          icon: '🔔',
+          duration: 5000,
+        });
+      }
     }
-  });
+  );
 
-  // Update local state when data changes
+  /* =========================
+     SYNC QUERY → LOCAL STATE
+  ========================= */
   useEffect(() => {
-    if (notificationsData) {
-      setNotifications(notificationsData.data || []);
-      setUnreadCount(notificationsData.data?.filter(n => !n.read).length || 0);
+    if (notificationsData?.data) {
+      setNotifications(notificationsData.data);
+      setUnreadCount(
+        notificationsData.data.filter((n) => !n.read).length
+      );
     }
   }, [notificationsData]);
 
+  /* =========================
+     CONTEXT ACTIONS
+  ========================= */
   const markAsRead = async (id) => {
     await markAsReadMutation.mutateAsync(id);
   };
