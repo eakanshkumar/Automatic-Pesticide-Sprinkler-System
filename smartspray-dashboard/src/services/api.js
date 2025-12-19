@@ -15,6 +15,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // important for CORS + auth
 });
 
 // Request interceptor to add auth token
@@ -26,24 +27,33 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // CORS / Network error (browser blocked request)
+    if (!error.response) {
+      toast.error('Unable to connect to server');
+      return Promise.reject(error);
+    }
+
+    if (error.response.status === 401) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
-      window.location.href = '/login';
-    } else if (error.response?.data?.error) {
+
+      // prevent redirect loop
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    } else if (error.response.data?.error) {
       toast.error(error.response.data.error);
     } else {
       toast.error('An unexpected error occurred');
     }
+
     return Promise.reject(error);
   }
 );
